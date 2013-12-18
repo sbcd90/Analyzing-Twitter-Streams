@@ -27,6 +27,6 @@ exports.get = function(req,res){
 
 	require('../models/mongolab_connect').push_to_db(tweet_id,text,user_id,geo_location,coordinates,place);
       });
-  },60000);
+  },180000);
 }
 
