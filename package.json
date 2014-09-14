@@ -6,6 +6,7 @@
     "express": "3.0.0alpha4",
     "jade": "*",
     "oauth": "*",
-    "xmlhttprequest": "*"  
+    "xmlhttprequest": "*",
+    "url": "*"  
   }
 }
