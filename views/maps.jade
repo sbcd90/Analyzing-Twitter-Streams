@@ -1,0 +1,277 @@
+doctype html
+html
+    head
+        title= TwitterMap
+        meta(name = "viewport", content = "initial-scale=1.0, user-scalable=no")
+        meta(charset = "utf-8")  
+        link(rel = 'stylesheet', href = '/stylesheets/style.css')
+        script(type = "text/javascript", src = "https://maps.googleapis.com/maps/api/js?v=3.exp")
+        script(type = "text/javascript").
+            function initialize(){
+                var latitude = null;
+                var longitude = null;
+                                                
+        
+                var showPosition = function(position){
+                    latitude = position.coords.latitude;
+                    longitude = position.coords.longitude;
+            
+                    var center = new google.maps.LatLng(latitude,longitude);
+            
+                    var mapOptions  = {};
+                    mapOptions.zoom = 2;
+                    mapOptions.center = center;
+            
+                    var map = new google.maps.Map(document.getElementById('map-canvas'),mapOptions);
+                    /*var bounds = map.getBounds();
+                    
+                    var xmlhttp = new XMLHttpRequest();
+                    xmlhttp.open("GET","/twitterFetch?topLeft_latitude=" + topLeft_latitude + "&bottomRight_latitude=" + bottomRight_latitude + "&topLeft_longitude=" + topLeft_longitude + "&bottomRight_longitude=" + bottomRight_longitude,false);
+                    xmlhttp.onreadystatechange = function(){
+                        if (xmlhttp.readyState==4 && xmlhttp.status==200){
+                            var responseJSON = JSON.parse(xmlhttp.responseText);
+                            for(var count=0;count<responseJSON.length;count++){
+                                var contentString = responseJSON[count].name + "<br>" + responseJSON[count].url;
+                                var latlng = new google.maps.LatLng(parseFloat(responseJSON[count].latitude),parseFloat(responseJSON[count].longitude));
+                                var marker = new google.maps.Marker({
+                                    position : latlng,
+                                    map : map,
+                                    title : "title"
+                                });
+                                var infoWindow = new google.maps.InfoWindow({
+                                    content : contentString
+                                });
+                                infoWindow.open(map,marker);
+                            }
+                        }
+                    };
+                    xmlhttp.send();*/
+                    
+                    var date = new Date();
+                    if(sessionStorage.cachedData===undefined){
+                        sessionStorage.startmlsec = date.getTime();
+                        sessionStorage.initialLoad = true;
+                        sessionStorage.noOfMarkers = 0;
+                    }
+            
+                    google.maps.event.addListener(map, 'bounds_changed', function(){
+                        debugger;
+                        var now = new Date();
+                        var nowmlsec = now.getTime();
+                        if((nowmlsec-parseInt(sessionStorage.startmlsec)>900000)||(sessionStorage.initialLoad=='true')){
+                        sessionStorage.startmlsec = nowmlsec;
+                        var bounds = map.getBounds();
+                        var topLeft_latitude = bounds.Ca.k;
+                        var bottomRight_latitude = bounds.Ca.j;
+                        var topLeft_longitude = bounds.ta.j;
+                        var bottomRight_longitude = bounds.ta.k;
+                        var xmlhttp = new XMLHttpRequest();
+                        if(sessionStorage.initialLoad!='true'){
+                            var nextSet = parseInt(sessionStorage.noOfMarkers) + 15;
+                            var locationArr = JSON.parse(sessionStorage.locations);
+                            if(nextSet>locationArr.length)
+                                nextSet = locationArr.length;
+                            var params = '';    
+                            for(var countloc=parseInt(sessionStorage.noOfMarkers);countloc<nextSet;countloc++){
+                                params = params + locationArr[countloc].woeid + ',';
+                            }
+                            xmlhttp.open("GET","/twitterFetch?id=" + params.slice(0,-1),true);
+                        }
+                        else    
+                            xmlhttp.open("GET","/twitterFetch?topLeft_latitude=" + topLeft_latitude + "&bottomRight_latitude=" + bottomRight_latitude + "&topLeft_longitude=" + topLeft_longitude + "&bottomRight_longitude=" + bottomRight_longitude + "&center_lat=" + latitude + "&center_long=" + longitude,true);
+                        xmlhttp.onreadystatechange = function(){
+                            if (xmlhttp.readyState==4 && xmlhttp.status==200){
+                                var responseJSON = undefined;
+                                if(sessionStorage.initialLoad=='true'){
+                                    responseJSON = JSON.parse(xmlhttp.responseText);
+                                    sessionStorage.locations = JSON.stringify(responseJSON.locations);
+                                    sessionStorage.cachedData = JSON.stringify(responseJSON.trends);
+                                }
+                                else{
+                                    sessionStorage.cachedData = sessionStorage.cachedData.slice(0,-2) + ',' + xmlhttp.responseText + "]}";
+                                    responseJSON = JSON.parse(sessionStorage.cachedData.slice(0,-2) + ',' + xmlhttp.responseText + "]}");
+                                }
+                                sessionStorage.initialLoad = false;
+                                sessionStorage.noOfMarkers = parseInt(sessionStorage.noOfMarkers) + 15;
+                                responseJSON = responseJSON.trends;
+                                var contentString = '';
+                                var contentArray = [];
+                                var infoWinArray = [];
+                                var markerArray = [];
+                                for(var count=0;count<responseJSON.length;count++){
+                                    if(count>0 && parseFloat(responseJSON[count].latitude)==parseFloat(responseJSON[count-1].latitude) && parseFloat(responseJSON[count].longitude)==parseFloat(responseJSON[count-1].longitude))
+                                        contentString = contentString + '<a href="' + responseJSON[count].url + '">' + responseJSON[count].name + '</a><br>';
+                                    else if(count>0){
+                                        if(parseFloat(responseJSON[count-1].latitude)==0 && parseFloat(responseJSON[count-1].longitude)==0)
+                                            latlng = new google.maps.LatLng(parseFloat(latitude),parseFloat(longitude));
+                                        else    
+                                            latlng = new google.maps.LatLng(parseFloat(responseJSON[count-1].latitude),parseFloat(responseJSON[count-1].longitude));
+                                        var marker = new google.maps.Marker({
+                                            position : latlng,
+                                            map : map,
+                                            title : (count-1).toString()
+                                        });
+                                        markerArray.push(marker);
+                                        contentArray.push({title : (count-1).toString(),content : contentString});
+                                        var infoWindow = new google.maps.InfoWindow({
+                                            content : contentString
+                                        });
+                                        infoWinArray.push({title : (count-1).toString(), infoWin : infoWindow});
+                                        google.maps.event.addListener(markerArray[markerArray.length-1], 'click', function(event) {
+                                            for(var findMark=0;findMark<markerArray.length;findMark++){
+                                                        if(markerArray[findMark].position.k==event.latLng.k && markerArray[findMark].position.B==event.latLng.B)
+                                                            break;
+                                                    }
+                                                var marker = markerArray[findMark]; 
+                                            for(var find=0;find<contentArray.length;find++){
+                                                if(contentArray[find].title==marker.getTitle())
+                                                    break;
+                                            }
+                                            var oldFind = find;
+                                            for(var find=0;find<infoWinArray.length;find++){
+                                                if(infoWinArray[find].title==marker.getTitle()){
+                                                    infoWinArray[find].infoWin.setContent(contentArray[oldFind].content);
+                                                    infoWinArray[find].infoWin.open(map,marker);
+                                                    break;
+                                                }
+                                            }
+                                        });
+                                        contentString = '<a href="' + responseJSON[count].url + '">' + responseJSON[count].name + '</a><br>';
+                                    }
+                                }
+                                if(parseFloat(responseJSON[count-1].latitude)==0 && parseFloat(responseJSON[count-1].longitude)==0)
+                                            latlng = new google.maps.LatLng(parseFloat(latitude),parseFloat(longitude));
+                                        else    
+                                            latlng = new google.maps.LatLng(parseFloat(responseJSON[count-1].latitude),parseFloat(responseJSON[count-1].longitude));
+                                        var marker = new google.maps.Marker({
+                                            position : latlng,
+                                            map : map,
+                                            title : (count-1).toString()
+                                        });
+                                        markerArray.push(marker);
+                                        contentArray.push({title : (count-1).toString(),content : contentString});
+                                        var infoWindow = new google.maps.InfoWindow({
+                                            content : contentString
+                                        });
+                                        infoWinArray.push({title : (count-1).toString(), infoWin : infoWindow});
+                                        google.maps.event.addListener(markerArray[markerArray.length-1], 'click', function(event) {
+                                            for(var findMark=0;findMark<markerArray.length;findMark++){
+                                                        if(markerArray[findMark].position.k==event.latLng.k && markerArray[findMark].position.B==event.latLng.B)
+                                                            break;
+                                                    }
+                                                var marker = markerArray[findMark]; 
+                                            for(var find=0;find<contentArray.length;find++){
+                                                if(contentArray[find].title==marker.getTitle())
+                                                    break;
+                                            }
+                                            var oldFind = find;
+                                            for(var find=0;find<infoWinArray.length;find++){
+                                                if(infoWinArray[find].title==marker.getTitle()){
+                                                    infoWinArray[find].infoWin.setContent(contentArray[oldFind].content);
+                                                    infoWinArray[find].infoWin.open(map,marker);
+                                                    break;
+                                                }
+                                            }
+                                        });
+                            }
+                        };
+                        xmlhttp.send();
+                        }else{
+                            var responseJSON = JSON.parse(sessionStorage.cachedData);
+                                var contentString = '';
+                                var contentArray = [];
+                                var markerArray = [];
+                                var infoWinArray = [];
+                                for(var count=0;count<responseJSON.length;count++){
+                                    if(count>0 && parseFloat(responseJSON[count].latitude)==parseFloat(responseJSON[count-1].latitude) && parseFloat(responseJSON[count].longitude)==parseFloat(responseJSON[count-1].longitude))
+                                        contentString = contentString + '<a href="' + responseJSON[count].url + '">' + responseJSON[count].name + '</a><br>';
+                                    else if(count>0){
+                                        if(parseFloat(responseJSON[count-1].latitude)==0 && parseFloat(responseJSON[count-1].longitude)==0)
+                                            latlng = new google.maps.LatLng(parseFloat(latitude),parseFloat(longitude));
+                                        else    
+                                            latlng = new google.maps.LatLng(parseFloat(responseJSON[count-1].latitude),parseFloat(responseJSON[count-1].longitude));
+                                        var marker = new google.maps.Marker({
+                                            position : latlng,
+                                            map : map,
+                                            title : (count-1).toString()
+                                        });
+                                        markerArray.push(marker);
+                                        
+                                        contentArray.push({title : (count-1).toString(),content : contentString});
+                                        var infoWindow = new google.maps.InfoWindow({
+                                            content : contentString
+                                        });
+                                        infoWinArray.push({title : (count-1).toString(), infoWin : infoWindow});
+                                        google.maps.event.addListener(markerArray[markerArray.length-1], 'click', function(event) {
+                                            for(var findMark=0;findMark<markerArray.length;findMark++){
+                                                        if(markerArray[findMark].position.k==event.latLng.k && markerArray[findMark].position.B==event.latLng.B)
+                                                            break;
+                                                    }
+                                                var marker = markerArray[findMark]; 
+                                            for(var find=0;find<contentArray.length;find++){
+                                                if(contentArray[find].title==marker.getTitle())
+                                                    break;
+                                            }
+                                            var oldFind = find;
+                                            for(var find=0;find<infoWinArray.length;find++){
+                                                if(infoWinArray[find].title==marker.getTitle()){
+                                                    infoWinArray[find].infoWin.setContent(contentArray[oldFind].content);
+                                                    infoWinArray[find].infoWin.open(map,marker);
+                                                    break;
+                                                }
+                                            }
+                                        });
+                                        contentString = '<a href="' + responseJSON[count].url + '">' + responseJSON[count].name + '</a><br>';
+                                    }
+                                }
+                                if(parseFloat(responseJSON[count-1].latitude)==0 && parseFloat(responseJSON[count-1].longitude)==0)
+                                            latlng = new google.maps.LatLng(parseFloat(latitude),parseFloat(longitude));
+                                        else    
+                                            latlng = new google.maps.LatLng(parseFloat(responseJSON[count-1].latitude),parseFloat(responseJSON[count-1].longitude));
+                                        var marker = new google.maps.Marker({
+                                            position : latlng,
+                                            map : map,
+                                            title : (count-1).toString()
+                                        });
+                                        markerArray.push(marker);
+                                        contentArray.push({title : (count-1).toString(),content : contentString});
+                                        var infoWindow = new google.maps.InfoWindow({
+                                            content : contentString
+                                        });
+                                        infoWinArray.push({title : (count-1).toString(), infoWin : infoWindow});
+                                        google.maps.event.addListener(markerArray[markerArray.length-1], 'click', function(event) {
+                                            for(var findMark=0;findMark<markerArray.length;findMark++){
+                                                        if(markerArray[findMark].position.k==event.latLng.k && markerArray[findMark].position.B==event.latLng.B)
+                                                            break;
+                                                    }
+                                                var marker = markerArray[findMark];    
+                                            for(var find=0;find<contentArray.length;find++){
+                                                if(contentArray[find].title==marker.getTitle())
+                                                    break;
+                                            }
+                                            var oldFind = find;
+                                            for(var find=0;find<infoWinArray.length;find++){
+                                                if(infoWinArray[find].title==marker.getTitle()){
+                                                    infoWinArray[find].infoWin.setContent(contentArray[oldFind].content);
+                                                    
+                                                    infoWinArray[find].infoWin.open(map,marker);
+                                                    break;
+                                                }
+                                            }
+                                        });
+                                        }
+                        });
+                        setInterval(function(){
+                            debugger;
+                            google.maps.event.trigger(map,'bounds_changed');
+                        },1000000);
+                };
+                if(navigator.geolocation){
+                    navigator.geolocation.getCurrentPosition(showPosition);
+                }else{
+                    console.log("Geolocation not supported");
+                }
+            }
+            google.maps.event.addDomListener(window, 'load', initialize);
+    body
+        div(id = 'map-canvas')

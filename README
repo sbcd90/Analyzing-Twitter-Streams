@@ -1,5 +1,0 @@
-Analyze twitter streams to do sentimental analysis
-
--- Currently fetching data to twitter & pushing it to MongoLab Cloud done !
-
--- Pushing wordlist to cloud db for reference!
