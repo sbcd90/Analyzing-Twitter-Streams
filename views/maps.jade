@@ -1,0 +1,138 @@
+doctype html
+html
+    head
+        title = Twitter Trends Map
+        meta(name= "viewport", content= "initial-scale=1.0, user-scalable=no")
+        meta(charset= "utf-8")
+        link(rel= "stylesheet", href= "/stylesheets/style.css")
+        script(type= "text/javascript", src= "https://maps.googleapis.com/maps/api/js?v=3.exp")
+        script(type= "text/javascript").
+            function initialize(){
+                var showPosition = function(position){
+                    var latitude = position.coords.latitude;
+                    var longitude = position.coords.longitude;
+                    
+                    var center = new google.maps.LatLng(latitude,longitude);
+                    
+                    var mapOptions  = {};
+                    mapOptions.zoom = 2;
+                    mapOptions.center = center;
+                    
+                    var map = new google.maps.Map(document.getElementById('map-canvas'),mapOptions);
+                    
+                    google.maps.event.addListener(map,'bounds_changed', function(){
+                        var bounds = map.getBounds();
+                        var topLeft_latitude = bounds.Ca.k;
+                        var bottomRight_latitude = bounds.Ca.j;
+                        var topLeft_longitude = bounds.ta.j;
+                        var bottomRight_longitude = bounds.ta.k;
+                        if(sessionStorage.initialLoad!= undefined && sessionStorage.initialLoad=="false"){
+                            var responseJSON = JSON.parse(sessionStorage.locationData);
+                            var markerArray = [];
+                                for(var count=0;count<responseJSON.length;count++){
+                                    var pointLat = responseJSON[count].latitude;
+                                    var pointLong = responseJSON[count].longitude;
+                                    var latlng = new google.maps.LatLng(parseFloat(pointLat),parseFloat(pointLong));
+                                    var marker = new google.maps.Marker({
+                                            position : latlng,
+                                            map : map,
+                                            title : responseJSON[count].woeid
+                                    });
+                                    markerArray.push(marker);
+                                    google.maps.event.addListener(marker, 'click', function(event){
+                                        var clickedLat = event.latLng.k;
+                                        var clickedLong = event.latLng.B;
+                                        for(var findMark=0;findMark<markerArray.length;findMark++){
+                                            if(markerArray[findMark].position.k==event.latLng.k && markerArray[findMark].position.B==event.latLng.B)
+                                                break;
+                                        }
+                                        
+                                        for(var selPoint=0;selPoint<responseJSON.length;selPoint++){
+                                            if((parseInt(parseFloat(responseJSON[selPoint].latitude)-parseFloat(clickedLat))==0 || ((parseFloat(responseJSON[selPoint].longitude)-parseFloat(clickedLong)).toString()).indexOf('e-')!=-1)&& (parseInt(parseFloat(responseJSON[selPoint].longitude)-parseFloat(clickedLong))==0 || ((parseFloat(responseJSON[selPoint].longitude)-parseFloat(clickedLong)).toString()).indexOf('e-')!=-1))
+                                                break;
+                                        }
+                                        
+                                        var infoWindow = new google.maps.InfoWindow();
+                                        
+                                        var xmlhttpnext = new XMLHttpRequest();
+                                        xmlhttpnext.open('GET','/getTrends?id=' + responseJSON[selPoint].woeid,true);
+                                        xmlhttpnext.onreadystatechange = function(){
+                                            if (xmlhttpnext.readyState===4 && xmlhttpnext.status===200){
+                                                var responseTrends = JSON.parse(xmlhttpnext.responseText);
+                                                var contentString = '';
+                                                for(var trendCount=0;trendCount<responseTrends.length;trendCount++){
+                                                    contentString = contentString + '<a href="' + responseTrends[trendCount].url + '">' + responseTrends[trendCount].name + '</a><br>';
+                                                }
+                                                
+                                                infoWindow.setContent(contentString);
+                                                infoWindow.open(map,markerArray[findMark]);
+                                            }
+                                        };
+                                        xmlhttpnext.send();
+                                    });
+                                }
+                        }
+                        else{
+                            sessionStorage.initialLoad = true;
+                            var xmlhttp = new XMLHttpRequest();
+                            xmlhttp.open('GET','/getLocations?topLeft_latitude=' + topLeft_latitude + '&bottomRight_latitude=' + bottomRight_latitude + '&topLeft_longitude=' + topLeft_longitude + '&bottomRight_longitude=' + bottomRight_longitude + '&center_lat=' + latitude + '&center_long=' + longitude,true);
+                            xmlhttp.onreadystatechange = function(){
+                                
+                                if (xmlhttp.readyState===4 && xmlhttp.status===200){
+                                    sessionStorage.initialLoad = false;
+                                    sessionStorage.locationData = xmlhttp.responseText;
+                                    var responseJSON = JSON.parse(xmlhttp.responseText);
+                                    for(var count=0;count<responseJSON.length;count++){
+                                        var pointLat = responseJSON[count].latitude;
+                                        var pointLong = responseJSON[count].longitude;
+                                        var latlng = new google.maps.LatLng(parseFloat(pointLat),parseFloat(pointLong));
+                                        var marker = new google.maps.Marker({
+                                            position : latlng,
+                                            map : map,
+                                            title : responseJSON[count].woeid
+                                        });
+                                        google.maps.event.addListener(marker, 'click', function(event){
+                                            var clickedLat = event.latLng.k;
+                                            var clickedLong = event.latLng.B;
+                                        
+                                            for(var selPoint=0;selPoint<responseJSON.length;selPoint++){
+                                                if((parseInt(parseFloat(responseJSON[selPoint].latitude)-parseFloat(clickedLat))==0 || ((parseFloat(responseJSON[selPoint].longitude)-parseFloat(clickedLong)).toString()).indexOf('e-')!=-1)&& (parseInt(parseFloat(responseJSON[selPoint].longitude)-parseFloat(clickedLong))==0 || ((parseFloat(responseJSON[selPoint].longitude)-parseFloat(clickedLong)).toString()).indexOf('e-')!=-1))
+                                                    break;
+                                            }
+                                        
+                                            var infoWindow = new google.maps.InfoWindow();
+                                        
+                                            var xmlhttpnext = new XMLHttpRequest();
+                                            xmlhttpnext.open('GET','/getTrends?id=' + responseJSON[selPoint].woeid,true);
+                                            xmlhttpnext.onreadystatechange = function(){
+                                                if (xmlhttpnext.readyState===4 && xmlhttpnext.status===200){
+                                                    var responseTrends = JSON.parse(xmlhttpnext.responseText);
+                                                    var contentString = '';
+                                                    for(var trendCount=0;trendCount<responseTrends.length;trendCount++){
+                                                        contentString = contentString + '<a href="' + responseTrends[trendCount].url + '">' + responseTrends[trendCount].name + '</a><br>';
+                                                    }
+                                                
+                                                    infoWindow.setContent(contentString);
+                                                    infoWindow.open(map,marker);
+                                                }
+                                            };
+                                            xmlhttpnext.send();
+                                        });
+                                    }
+                                }
+                            };
+                            xmlhttp.send();
+                        }
+                    });
+                };
+                
+                if(navigator.geolocation){
+                    navigator.geolocation.getCurrentPosition(showPosition);
+                }else{
+                    console.log("Geolocation not supported");
+                }
+            }
+            
+            google.maps.event.addDomListener(window,'load',initialize);
+        body
+            div(id= "map-canvas")
